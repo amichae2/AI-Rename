@@ -43,15 +43,8 @@ This extension requires an [Anthropic](https://www.anthropic.com/) API key.
 
 1. Create an account at [console.anthropic.com](https://console.anthropic.com/).
 2. Navigate to **API Keys** and generate a new key.
-3. Set the environment variable so Nautilus can access it:
-
-```bash
-# Add to ~/.bashrc or ~/.profile so it persists across sessions:
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-> **Note:** You can also store the key via GSettings (see [Configuration](#configuration)),
-> but the environment variable is recommended for security.
+3. Store the key so the extension can read it (see [Setting up the API Key](#setting-up-the-api-key)
+   below for details).
 
 ### System Packages
 
@@ -106,6 +99,43 @@ The script will:
 
 The script is idempotent — safe to run again after pulling updates.
 
+## Setting up the API Key
+
+Get your API key from [console.anthropic.com](https://console.anthropic.com/).
+
+### Recommended: Use dconf (most reliable)
+
+```bash
+# Replace with your actual API key
+dconf write /com/github/ai-rename/api-key "'sk-ant-api03-...'"
+
+# Verify it's set
+dconf read /com/github/ai-rename/api-key
+```
+
+**Important:** The quoting is required — use single quotes inside double quotes:
+`"'value'"`.
+
+### Alternative: Use gsettings
+
+```bash
+gsettings set com.github.ai-rename api-key 'sk-ant-api03-...'
+
+# Verify with dconf (this is what the extension actually reads)
+dconf read /com/github/ai-rename/api-key
+```
+
+If `dconf read` returns nothing but `gsettings get` shows your key, use the dconf
+method above instead.
+
+After setting the key, restart Nautilus:
+
+```bash
+killall nautilus
+```
+
+Then open Files and try renaming a file.
+
 ## Uninstallation
 
 ```bash
@@ -121,27 +151,32 @@ rm -rf ~/.config/nautilus-ai-rename   # remove manually if desired
 
 ## Configuration
 
-Settings live in GSettings under the schema `com.github.ai-rename`.
-
-```bash
-# View current settings
-gsettings list-recursively com.github.ai-rename
-
-# Change the model
-gsettings set com.github.ai-rename model 'claude-sonnet-4-5-20250929'
-
-# Store the API key in GSettings (instead of the environment variable)
-gsettings set com.github.ai-rename api-key 'sk-ant-...'
-
-# Shorten generated filenames
-gsettings set com.github.ai-rename max-filename-length 40
-```
+Settings are stored in dconf under `/com/github/ai-rename/`. You can change them
+using either `dconf write` or `gsettings set`:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `model` | string | `claude-haiku-4-5-20251001` | Claude model identifier |
-| `api-key` | string | *(empty)* | Anthropic API key (falls back to `ANTHROPIC_API_KEY` env var) |
+| `api-key` | string | *(empty)* | Anthropic API key |
 | `max-filename-length` | integer | `60` | Max characters in the filename stem (extension not counted) |
+
+### Change the model
+
+```bash
+# Using dconf
+dconf write /com/github/ai-rename/model "'claude-sonnet-4-5-20250929'"
+
+# Using gsettings
+gsettings set com.github.ai-rename model 'claude-sonnet-4-5-20250929'
+```
+
+### Adjust max filename length
+
+```bash
+dconf write /com/github/ai-rename/max-filename-length "40"
+```
+
+Note: integer values don't need inner quotes.
 
 ### Available Models
 
@@ -149,47 +184,57 @@ gsettings set com.github.ai-rename max-filename-length 40
 |---|---|---|
 | Claude Haiku 4.5 | `claude-haiku-4-5-20251001` | Fast and cost-effective (default) |
 | Claude Sonnet 4.5 | `claude-sonnet-4-5-20250929` | Balanced speed and quality |
-| Claude Opus 4.5 | `claude-opus-4-5-20250520` | Highest quality |
+| Claude Opus 4.5 | `claude-opus-4-5-20251101` | Most capable |
 
 The default (Haiku 4.5) is recommended — it's fast, inexpensive, and more than
 capable of generating good filenames.
 
 ## Troubleshooting
 
-**Menu item does not appear:**
+### "API key missing" error
+
+Check if the key is actually stored:
 
 ```bash
-# Run Nautilus in the foreground to see Python errors
-nautilus --no-desktop 2>&1 | grep -i 'ai.rename\|python\|error'
-
-# Verify the extension symlink exists
-ls -la ~/.local/share/nautilus-python/extensions/ai_rename_extension.py
+dconf read /com/github/ai-rename/api-key
 ```
 
-**Rename fails silently:**
+If this returns nothing (blank output), the key isn't set. Use:
+
+```bash
+dconf write /com/github/ai-rename/api-key "'your-actual-key-here'"
+```
+
+**Why not gsettings?** On some systems `gsettings set` writes to a different backend
+than what the extension reads from. Using `dconf write` directly ensures the value
+is stored where the extension expects it.
+
+### Menu item does not appear
+
+```bash
+# Check if the extension symlink exists
+ls -la ~/.local/share/nautilus-python/extensions/ai_rename_extension.py
+
+# Run Nautilus in the foreground to see Python errors
+nautilus --no-desktop 2>&1 | grep -i 'ai.rename\|python\|error'
+```
+
+### Extension loads but rename fails
 
 ```bash
 # Watch for [AI Rename] log lines
 journalctl --user -f | grep 'AI Rename'
 ```
 
-**API key not found:**
+Then try renaming a file and check for error messages.
 
-- Ensure `ANTHROPIC_API_KEY` is exported in the shell environment that Nautilus
-  inherits. If you launch Nautilus from the GNOME desktop, add the export to
-  `~/.profile` (not just `~/.bashrc`) and log out/in.
-- Alternatively, store the key via GSettings:
-  ```bash
-  gsettings set com.github.ai-rename api-key 'sk-ant-...'
-  ```
-
-**Rate limiting (HTTP 429):**
+### Rate limiting (HTTP 429)
 
 The extension automatically retries up to 3 times with increasing back-off
 (2 s, 3.5 s, 5 s). If you hit persistent rate limits, consider upgrading your
 Anthropic plan or reducing batch sizes.
 
-**Missing Python dependencies:**
+### Missing Python dependencies
 
 ```bash
 # Check that nautilus-python bindings are installed

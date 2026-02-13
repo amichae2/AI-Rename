@@ -14,13 +14,13 @@
       </description>
     </key>
 
-    <!-- API key (leave blank to use the ANTHROPIC_API_KEY environment variable) -->
+    <!-- API key -->
     <key name="api-key" type="s">
       <default>''</default>
       <summary>Anthropic API key</summary>
       <description>
-        Your Anthropic API key. Leave blank to use the ANTHROPIC_API_KEY
-        environment variable instead (recommended for security).
+        Your Anthropic API key from console.anthropic.com.
+        Set with: dconf write /com/github/ai-rename/api-key "'your-key-here'"
       </description>
     </key>
 

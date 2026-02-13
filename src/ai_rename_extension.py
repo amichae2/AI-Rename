@@ -879,15 +879,12 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         request).  Images always go through the vision API individually.
         """
         cfg = self._load_settings()
-        print(f"[AI Rename] DEBUG: Full config = {cfg}")  # ← ADD THIS
         api_key = cfg["api-key"]
-        print(f"[AI Rename] DEBUG: api_key = '{api_key}'")  # ← ADD THIS
-        print(f"[AI Rename] DEBUG: api_key is empty = {not api_key}")  # ← ADD THIS
 
         if not api_key:
             self._notify(
                 "AI Rename — API key missing",
-                "Set the ANTHROPIC_API_KEY environment variable.",
+                "Run: dconf write /com/github/ai-rename/api-key \"'your-key-here'\"",
             )
             return
 
@@ -1121,43 +1118,24 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
 
     @staticmethod
     def _load_settings() -> Dict[str, Any]:
-        """Read extension settings from GSettings, falling back to hardcoded defaults."""
+        """Read extension settings from GSettings (dconf backend)."""
         defaults: Dict[str, Any] = {
             "model": LLMClient.DEFAULT_MODEL,
-            "api-key": "",
+            "api-key": "",  # Must be set via dconf or gsettings
             "max-filename-length": MAX_FILENAME_CHARS,
         }
         try:
-            print("[AI Rename] DEBUG: Attempting to load GSettings")
             s = Gio.Settings.new("com.github.ai-rename")
-            print("[AI Rename] DEBUG: GSettings object created successfully")
-            
             available = s.list_keys()
-            print(f"[AI Rename] DEBUG: Available keys = {available}")
-            
-            # Read from GSettings first, fall back to env var if empty
-            gsettings_api_key = s.get_string("api-key") if "api-key" in available else ""
-            print(f"[AI Rename] DEBUG: gsettings_api_key = '{gsettings_api_key}'")
-            print(f"[AI Rename] DEBUG: gsettings_api_key length = {len(gsettings_api_key)}")
-            
-            env_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-            print(f"[AI Rename] DEBUG: env_api_key = '{env_api_key[:20] if env_api_key else '(empty)'}'")
-            
-            api_key = gsettings_api_key or env_api_key
-            print(f"[AI Rename] DEBUG: final api_key = '{api_key[:20] if api_key else '(empty)'}'")
-            
+
             return {
                 "model": s.get_string("model") or defaults["model"],
-                "api-key": api_key,
+                "api-key": s.get_string("api-key") if "api-key" in available else "",
                 "max-filename-length": s.get_int("max-filename-length") or defaults["max-filename-length"],
             }
-        except Exception as e:
-            print(f"[AI Rename] DEBUG: Exception in _load_settings: {e}")
-            # If GSettings fails entirely, fall back to env var
-            return {
-                **defaults,
-                "api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
-            }
+        except Exception as exc:
+            print(f"[AI Rename] Failed to load settings: {exc}")
+            return defaults
 
     @staticmethod
     def _notify(title: str, body: str) -> None:
