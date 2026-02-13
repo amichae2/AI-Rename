@@ -1121,32 +1121,38 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
 
     @staticmethod
     def _load_settings() -> Dict[str, Any]:
-        """Read extension settings from GSettings, falling back to hardcoded defaults.
-
-        The try/except means the extension works correctly even when the schema
-        has not been installed (e.g. during development before running install.sh).
-        """
+        """Read extension settings from GSettings, falling back to hardcoded defaults."""
         defaults: Dict[str, Any] = {
             "model": LLMClient.DEFAULT_MODEL,
-            "api-key": "",  # ← Changed: don't default to env var here
+            "api-key": "",
             "max-filename-length": MAX_FILENAME_CHARS,
         }
         try:
+            print("[AI Rename] DEBUG: Attempting to load GSettings")
             s = Gio.Settings.new("com.github.ai-rename")
-            # Guard against an old compiled schema that pre-dates the api-key key:
-            # list_keys() is safe; get_string() on a missing key causes a fatal GLib abort.
+            print("[AI Rename] DEBUG: GSettings object created successfully")
+            
             available = s.list_keys()
+            print(f"[AI Rename] DEBUG: Available keys = {available}")
             
             # Read from GSettings first, fall back to env var if empty
             gsettings_api_key = s.get_string("api-key") if "api-key" in available else ""
-            api_key = gsettings_api_key or os.environ.get("ANTHROPIC_API_KEY", "")  # ← Priority: GSettings first, then env var
+            print(f"[AI Rename] DEBUG: gsettings_api_key = '{gsettings_api_key}'")
+            print(f"[AI Rename] DEBUG: gsettings_api_key length = {len(gsettings_api_key)}")
+            
+            env_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            print(f"[AI Rename] DEBUG: env_api_key = '{env_api_key[:20] if env_api_key else '(empty)'}'")
+            
+            api_key = gsettings_api_key or env_api_key
+            print(f"[AI Rename] DEBUG: final api_key = '{api_key[:20] if api_key else '(empty)'}'")
             
             return {
                 "model": s.get_string("model") or defaults["model"],
                 "api-key": api_key,
                 "max-filename-length": s.get_int("max-filename-length") or defaults["max-filename-length"],
             }
-        except Exception:
+        except Exception as e:
+            print(f"[AI Rename] DEBUG: Exception in _load_settings: {e}")
             # If GSettings fails entirely, fall back to env var
             return {
                 **defaults,
