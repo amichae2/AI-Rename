@@ -22,6 +22,7 @@ env/
 *~
 .project
 .settings/
+.claude
 
 # OS
 .DS_Store
