@@ -1125,7 +1125,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         """
         defaults: Dict[str, Any] = {
             "model": LLMClient.DEFAULT_MODEL,
-            "api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+            "api-key": "",  # ← Changed: don't default to env var here
             "max-filename-length": MAX_FILENAME_CHARS,
         }
         try:
@@ -1133,18 +1133,22 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
             # Guard against an old compiled schema that pre-dates the api-key key:
             # list_keys() is safe; get_string() on a missing key causes a fatal GLib abort.
             available = s.list_keys()
-            api_key = (
-                s.get_string("api-key") or defaults["api-key"]
-                if "api-key" in available
-                else defaults["api-key"]
-            )
+            
+            # Read from GSettings first, fall back to env var if empty
+            gsettings_api_key = s.get_string("api-key") if "api-key" in available else ""
+            api_key = gsettings_api_key or os.environ.get("ANTHROPIC_API_KEY", "")  # ← Priority: GSettings first, then env var
+            
             return {
                 "model": s.get_string("model") or defaults["model"],
                 "api-key": api_key,
                 "max-filename-length": s.get_int("max-filename-length") or defaults["max-filename-length"],
             }
         except Exception:
-            return defaults
+            # If GSettings fails entirely, fall back to env var
+            return {
+                **defaults,
+                "api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+            }
 
     @staticmethod
     def _notify(title: str, body: str) -> None:
