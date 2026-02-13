@@ -879,7 +879,10 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         request).  Images always go through the vision API individually.
         """
         cfg = self._load_settings()
+        print(f"[AI Rename] DEBUG: Full config = {cfg}")  # ← ADD THIS
         api_key = cfg["api-key"]
+        print(f"[AI Rename] DEBUG: api_key = '{api_key}'")  # ← ADD THIS
+        print(f"[AI Rename] DEBUG: api_key is empty = {not api_key}")  # ← ADD THIS
 
         if not api_key:
             self._notify(
