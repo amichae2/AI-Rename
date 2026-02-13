@@ -1,8 +1,8 @@
-# AI Rename — Nautilus Extension
+# AI-Rename — Nautilus Extension
 
 A GNOME Files (Nautilus) extension that uses the **Anthropic Claude API** to generate
 intelligent, content-aware filenames. Right-click any file or selection of files and
-choose **Rename '…' with AI** to get a descriptive name based on the actual content.
+choose **Rename '...' with AI** to get a descriptive name based on the actual content.
 
 ## Features
 
@@ -16,7 +16,7 @@ choose **Rename '…' with AI** to get a descriptive name based on the actual co
   analysis
 - **Audio analysis** — extracts metadata (title/artist/album) when available, or sends
   raw audio (<20 MB) directly to Claude for content-based naming
-- **Undo support** — every rename is logged; use the **Undo last AI rename** context
+- **Undo support** — every rename is logged; use the **Undo last AI-Rename** context
   menu item to reverse it
 - **Filename sanitisation** — outputs lowercase, hyphen-separated names (3–6 words,
   max 60 characters by default, configurable)
@@ -84,8 +84,8 @@ to Claude for audio analysis; larger files and video use filename-only context.
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-rename.git
-cd ai-rename
+git clone https://github.com/YOUR_USERNAME/AI-Rename.git
+cd AI-Rename
 ./install.sh
 ```
 
@@ -222,8 +222,8 @@ nautilus --no-desktop 2>&1 | grep -i 'ai.rename\|python\|error'
 ### Extension loads but rename fails
 
 ```bash
-# Watch for [AI Rename] log lines
-journalctl --user -f | grep 'AI Rename'
+# Watch for [AI-Rename] log lines
+journalctl --user -f | grep 'AI-Rename'
 ```
 
 Then try renaming a file and check for error messages.
@@ -247,7 +247,7 @@ python3 -c "from PIL import Image; print('OK')"
 ## File Structure
 
 ```
-ai-rename/
+AI-Rename/
 ├── src/
 │   └── ai_rename_extension.py   # Main extension code
 ├── schemas/

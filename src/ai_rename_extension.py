@@ -58,7 +58,7 @@ try:
 except ImportError:
     Image = None  # type: ignore[assignment]
     HAS_PIL = False
-    print("[AI Rename] Pillow not installed; image files will use filename only")
+    print("[AI-Rename] Pillow not installed; image files will use filename only")
 
 try:
     import fitz  # type: ignore[import-untyped]
@@ -150,25 +150,25 @@ class LLMClient:
         Returns:
             Suggested filename string, or None on failure.
         """
-        print(f"[AI Rename] generate_from_image: {original_name!r}, path={filepath!r}")
+        print(f"[AI-Rename] generate_from_image: {original_name!r}, path={filepath!r}")
 
         # Detect MIME type from extension; Claude accepts jpeg/png/webp/gif.
         mime_type, _ = mimetypes.guess_type(filepath)
         if not mime_type or not mime_type.startswith("image/"):
             mime_type = "image/jpeg"
-        print(f"[AI Rename] generate_from_image: detected mime={mime_type!r}")
+        print(f"[AI-Rename] generate_from_image: detected mime={mime_type!r}")
 
         _MAX_DIRECT_BYTES = 10 * 1024 * 1024  # 10 MB
 
         try:
             file_size = os.path.getsize(filepath)
-            print(f"[AI Rename] generate_from_image: file_size={file_size} bytes")
+            print(f"[AI-Rename] generate_from_image: file_size={file_size} bytes")
 
             if file_size > _MAX_DIRECT_BYTES and HAS_PIL:
                 # Large file: resize with PIL to stay within API limits.
-                print(f"[AI Rename] generate_from_image: large file, resizing with PIL")
+                print(f"[AI-Rename] generate_from_image: large file, resizing with PIL")
                 img = Image.open(filepath)  # type: ignore[union-attr]
-                print(f"[AI Rename] generate_from_image: PIL opened, mode={img.mode!r}, size={img.size}")
+                print(f"[AI-Rename] generate_from_image: PIL opened, mode={img.mode!r}, size={img.size}")
                 if img.mode in ('RGBA', 'LA', 'PA'):
                     bg = Image.new('RGB', img.size, (255, 255, 255))  # type: ignore[union-attr]
                     bg.paste(img, mask=img.split()[3] if img.mode == 'RGBA' else None)
@@ -176,7 +176,7 @@ class LLMClient:
                 elif img.mode not in ('RGB', 'L'):
                     img = img.convert('RGB')
                 img.thumbnail((1024, 1024), Image.Resampling.BILINEAR)  # type: ignore[union-attr]
-                print(f"[AI Rename] generate_from_image: thumbnailed to {img.size}")
+                print(f"[AI-Rename] generate_from_image: thumbnailed to {img.size}")
                 buf = io.BytesIO()
                 img.save(buf, format="JPEG", quality=85, optimize=False)
                 image_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
@@ -187,9 +187,9 @@ class LLMClient:
                     raw = fh.read()
                 image_b64 = base64.b64encode(raw).decode("ascii")
 
-            print(f"[AI Rename] generate_from_image: b64 length={len(image_b64)}, mime={mime_type!r}")
+            print(f"[AI-Rename] generate_from_image: b64 length={len(image_b64)}, mime={mime_type!r}")
         except Exception as exc:
-            print(f"[AI Rename] generate_from_image: failed to read {filepath!r}: {exc}")
+            print(f"[AI-Rename] generate_from_image: failed to read {filepath!r}: {exc}")
             return None
 
         prompt = (
@@ -209,7 +209,7 @@ class LLMClient:
             {"type": "text", "text": prompt},
         ]
         result = self._call_claude(parts, max_tokens=50)
-        print(f"[AI Rename] generate_from_image: result={result!r}")
+        print(f"[AI-Rename] generate_from_image: result={result!r}")
         return result
 
     def generate_from_audio(
@@ -226,22 +226,22 @@ class LLMClient:
         Returns:
             Suggested filename string, or None on failure.
         """
-        print(f"[AI Rename] generate_from_audio: {original_name!r}, path={filepath!r}")
+        print(f"[AI-Rename] generate_from_audio: {original_name!r}, path={filepath!r}")
 
         mime_type, _ = mimetypes.guess_type(filepath)
         if not mime_type or not mime_type.startswith("audio/"):
             mime_type = "audio/mpeg"
-        print(f"[AI Rename] generate_from_audio: detected mime={mime_type!r}")
+        print(f"[AI-Rename] generate_from_audio: detected mime={mime_type!r}")
 
         try:
             file_size = os.path.getsize(filepath)
-            print(f"[AI Rename] generate_from_audio: file_size={file_size} bytes")
+            print(f"[AI-Rename] generate_from_audio: file_size={file_size} bytes")
             with open(filepath, "rb") as fh:
                 raw = fh.read()
             audio_b64 = base64.b64encode(raw).decode("ascii")
-            print(f"[AI Rename] generate_from_audio: b64 length={len(audio_b64)}, mime={mime_type!r}")
+            print(f"[AI-Rename] generate_from_audio: b64 length={len(audio_b64)}, mime={mime_type!r}")
         except Exception as exc:
-            print(f"[AI Rename] generate_from_audio: failed to read {filepath!r}: {exc}")
+            print(f"[AI-Rename] generate_from_audio: failed to read {filepath!r}: {exc}")
             return None
 
         prompt = (
@@ -261,7 +261,7 @@ class LLMClient:
             {"type": "text", "text": prompt},
         ]
         result = self._call_claude(parts, max_tokens=50)
-        print(f"[AI Rename] generate_from_audio: result={result!r}")
+        print(f"[AI-Rename] generate_from_audio: result={result!r}")
         return result
 
     def generate_batch(
@@ -341,7 +341,7 @@ class LLMClient:
             except json.JSONDecodeError:
                 pass
 
-        print(f"[AI Rename] Batch JSON parse failed. Raw: {raw[:200]!r}")
+        print(f"[AI-Rename] Batch JSON parse failed. Raw: {raw[:200]!r}")
         return None
 
     # ------------------------------------------------------------------
@@ -359,7 +359,7 @@ class LLMClient:
 
         Retries up to 3 times on HTTP 429 (rate limit) with 2-5 s back-off.
         """
-        print(f"[AI Rename] _call_claude: POST to Claude API (model={self.model}), {len(parts)} part(s), max_tokens={max_tokens}")
+        print(f"[AI-Rename] _call_claude: POST to Claude API (model={self.model}), {len(parts)} part(s), max_tokens={max_tokens}")
         payload = {
             "model": self.model,
             "max_tokens": max_tokens,
@@ -381,23 +381,23 @@ class LLMClient:
             try:
                 with urllib.request.urlopen(req, timeout=self.TIMEOUT) as resp:
                     raw_body = resp.read().decode("utf-8")
-                print(f"[AI Rename] _call_claude: HTTP 200, response={raw_body[:300]!r}")
+                print(f"[AI-Rename] _call_claude: HTTP 200, response={raw_body[:300]!r}")
                 data = json.loads(raw_body)
                 text = data["content"][0]["text"].strip()
-                print(f"[AI Rename] _call_claude: extracted text={text!r}")
+                print(f"[AI-Rename] _call_claude: extracted text={text!r}")
                 return text
             except urllib.error.HTTPError as exc:
                 if exc.code == 429 and attempt < self._MAX_RETRIES - 1:
                     exc.read()  # consume body to release connection
                     wait = 2 + attempt * 1.5  # 2 s, 3.5 s, 5 s
-                    print(f"[AI Rename] Rate limited (429), retrying in {wait:.1f}s (attempt {attempt + 1}/{self._MAX_RETRIES})")
+                    print(f"[AI-Rename] Rate limited (429), retrying in {wait:.1f}s (attempt {attempt + 1}/{self._MAX_RETRIES})")
                     time.sleep(wait)
                     continue
                 error_body = exc.read().decode("utf-8", errors="replace")[:300]
-                print(f"[AI Rename] Claude API error {exc.code}: {error_body}")
+                print(f"[AI-Rename] Claude API error {exc.code}: {error_body}")
                 return None
             except Exception as exc:
-                print(f"[AI Rename] Claude call failed (model={self.model}): {exc}")
+                print(f"[AI-Rename] Claude call failed (model={self.model}): {exc}")
                 return None
         return None
 
@@ -444,12 +444,12 @@ class FileContentExtractor:
         """
         mime = self._detect_mime(filepath)
         category = self._categorize(mime)
-        print(f"[AI Rename] extract: {filepath!r} → mime={mime!r} category={category!r}")
+        print(f"[AI-Rename] extract: {filepath!r} → mime={mime!r} category={category!r}")
 
         if category == "image":
             # Return the filepath directly — generate_from_image() reads raw bytes
             # and sends them to Claude without any PIL preprocessing (fast path).
-            print(f"[AI Rename] extract: image detected, returning filepath for direct API upload")
+            print(f"[AI-Rename] extract: image detected, returning filepath for direct API upload")
             return {"type": "image", "content": filepath, "mime": mime}
 
         elif category == "pdf":
@@ -468,7 +468,7 @@ class FileContentExtractor:
                 _MAX_AUDIO_BYTES = 20 * 1024 * 1024  # 20 MB
                 if mime.startswith("audio/") and file_size <= _MAX_AUDIO_BYTES:
                     # No metadata + small audio → send raw bytes to Claude.
-                    print(f"[AI Rename] extract: audio, no metadata, returning filepath for direct API upload")
+                    print(f"[AI-Rename] extract: audio, no metadata, returning filepath for direct API upload")
                     return {"type": "audio", "content": filepath, "mime": mime}
                 else:
                     # Video, or large audio → fallback description.
@@ -532,13 +532,13 @@ class FileContentExtractor:
         except UnicodeDecodeError:
             pass
         except Exception as exc:
-            print(f"[AI Rename] Text read failed for {filepath!r}: {exc}")
+            print(f"[AI-Rename] Text read failed for {filepath!r}: {exc}")
             return ""
         try:
             with open(filepath, encoding="latin-1") as fh:
                 return fh.read(self.MAX_TEXT_CHARS)
         except Exception as exc:
-            print(f"[AI Rename] Latin-1 fallback failed for {filepath!r}: {exc}")
+            print(f"[AI-Rename] Latin-1 fallback failed for {filepath!r}: {exc}")
             return ""
 
     def _extract_pdf(self, filepath: str) -> str:
@@ -551,7 +551,7 @@ class FileContentExtractor:
                 if text.strip():
                     return text[: self.MAX_TEXT_CHARS]
             except Exception as exc:
-                print(f"[AI Rename] PyMuPDF failed for {filepath!r}: {exc}")
+                print(f"[AI-Rename] PyMuPDF failed for {filepath!r}: {exc}")
 
         # Attempt 2: pypdf
         if HAS_PYPDF:
@@ -562,7 +562,7 @@ class FileContentExtractor:
                     if text.strip():
                         return text[: self.MAX_TEXT_CHARS]
             except Exception as exc:
-                print(f"[AI Rename] pypdf failed for {filepath!r}: {exc}")
+                print(f"[AI-Rename] pypdf failed for {filepath!r}: {exc}")
 
         return f"PDF file, size: {self._human_size(filepath)} (no extractable text)"
 
@@ -579,7 +579,7 @@ class FileContentExtractor:
                     paragraphs.append(text)
             return "\n".join(paragraphs)[: self.MAX_TEXT_CHARS]
         except Exception as exc:
-            print(f"[AI Rename] DOCX extraction failed for {filepath!r}: {exc}")
+            print(f"[AI-Rename] DOCX extraction failed for {filepath!r}: {exc}")
             return f"DOCX file, size: {self._human_size(filepath)}"
 
     def _extract_av(self, filepath: str) -> str | None:
@@ -598,7 +598,7 @@ class FileContentExtractor:
                 if lines:
                     return "\n".join(lines)
             except Exception as exc:
-                print(f"[AI Rename] Audio/video metadata failed for {filepath!r}: {exc}")
+                print(f"[AI-Rename] Audio/video metadata failed for {filepath!r}: {exc}")
 
         return None  # No useful metadata found
 
@@ -748,7 +748,7 @@ class UndoManager:
                 gfile.set_display_name(os.path.basename(entry["old"]), None)
                 success_count += 1
             except Exception as exc:
-                print(f"[AI Rename] Undo failed for {entry['new']!r}: {exc}")
+                print(f"[AI-Rename] Undo failed for {entry['new']!r}: {exc}")
                 failed.append(entry)
 
         # Keep only the entries that could not be undone.
@@ -765,11 +765,11 @@ class UndoManager:
                 data = json.load(fh)
             if isinstance(data, list):
                 return data
-            print("[AI Rename] Undo history has unexpected format; resetting.")
+            print("[AI-Rename] Undo history has unexpected format; resetting.")
         except FileNotFoundError:
             pass
         except (json.JSONDecodeError, OSError, ValueError) as exc:
-            print(f"[AI Rename] Corrupt undo history, resetting: {exc}")
+            print(f"[AI-Rename] Corrupt undo history, resetting: {exc}")
         return []
 
     def _save(self, history: list) -> None:
@@ -777,7 +777,7 @@ class UndoManager:
             with open(self._history_path, "w", encoding="utf-8") as fh:
                 json.dump(history, fh, indent=2)
         except OSError as exc:
-            print(f"[AI Rename] Failed to save undo history: {exc}")
+            print(f"[AI-Rename] Failed to save undo history: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -790,10 +790,10 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
     Menu structure (right-click on one or more files):
 
         Rename 'photo.jpg' with AI          ← single file; activates directly
-        Undo last AI rename                 ← only when history exists
+        Undo last AI-Rename                 ← only when history exists
 
         Rename 3 files with AI              ← multi-file selection
-        Undo last AI rename
+        Undo last AI-Rename
     """
 
     # When at least this many text files are selected, use batch mode.
@@ -840,7 +840,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         if os.path.isfile(_undo_path):
             undo_item = Nautilus.MenuItem(
                 name="AIRename::undo",
-                label="Undo last AI rename",
+                label="Undo last AI-Rename",
                 tip="Reverse the most recent AI-driven rename",
             )
             undo_item.connect("activate", self._on_undo)
@@ -883,12 +883,12 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
 
         if not api_key:
             self._notify(
-                "AI Rename — API key missing",
+                "AI-Rename — API key missing",
                 "Run: dconf write /com/github/ai-rename/api-key \"'your-key-here'\"",
             )
             return
 
-        print(f"[AI Rename] Starting rename of {len(files)} file(s) via Claude")
+        print(f"[AI-Rename] Starting rename of {len(files)} file(s) via Claude")
 
         client = LLMClient(api_key, cfg["model"])
         extractor = FileContentExtractor()
@@ -924,11 +924,11 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
                 else:
                     text_items.append(item)
             except Exception as exc:
-                print(f"[AI Rename] Extraction failed for {original_name!r}: {exc}")
+                print(f"[AI-Rename] Extraction failed for {original_name!r}: {exc}")
                 failed += 1
 
         # ---- Phase 2: process individual files in parallel ----
-        print(f"[AI Rename] Phase 2: {len(image_items)} image(s), {len(audio_items)} audio file(s), {len(text_items)} text file(s)")
+        print(f"[AI-Rename] Phase 2: {len(image_items)} image(s), {len(audio_items)} audio file(s), {len(text_items)} text file(s)")
 
         # Collect individual-API items: images, audio, and small text sets.
         # Text files above the batch threshold go through batch mode instead.
@@ -972,12 +972,12 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
 
         if failed == 0:
             self._notify(
-                "AI Rename complete",
+                "AI-Rename complete",
                 f"Renamed {renamed} file{'s' if renamed != 1 else ''}.",
             )
         else:
             self._notify(
-                "AI Rename — partial failure",
+                "AI-Rename — partial failure",
                 f"Renamed {renamed}, failed to rename {failed}.",
             )
 
@@ -999,7 +999,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         if mapping is None:
             # JSON parse failed or LLM returned nothing — retry each file individually.
             print(
-                f"[AI Rename] Batch of {len(chunk)} failed; "
+                f"[AI-Rename] Batch of {len(chunk)} failed; "
                 "falling back to individual requests."
             )
             renamed, failed = 0, 0
@@ -1015,7 +1015,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
             if not raw:
                 # LLM omitted this file — fall back to an individual request.
                 print(
-                    f"[AI Rename] Batch omitted {item['original_name']!r}; "
+                    f"[AI-Rename] Batch omitted {item['original_name']!r}; "
                     "retrying individually."
                 )
                 r, f = self._apply_rename(item, client, undo_mgr, cfg, is_image=False)
@@ -1036,7 +1036,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
                 renamed += 1
                 GLib.idle_add(item["nfile"].invalidate_extension_info)
             except Exception as exc:
-                print(f"[AI Rename] Failed to rename {item['original_name']!r}: {exc}")
+                print(f"[AI-Rename] Failed to rename {item['original_name']!r}: {exc}")
                 failed += 1
 
         return renamed, failed
@@ -1058,17 +1058,17 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         """
         try:
             if is_image:
-                print(f"[AI Rename] _apply_rename: image path for {item['original_name']!r}, filepath={item['content']!r}")
+                print(f"[AI-Rename] _apply_rename: image path for {item['original_name']!r}, filepath={item['content']!r}")
                 raw = client.generate_from_image(item["content"], item["original_name"])
             elif is_audio:
-                print(f"[AI Rename] _apply_rename: audio path for {item['original_name']!r}, filepath={item['content']!r}")
+                print(f"[AI-Rename] _apply_rename: audio path for {item['original_name']!r}, filepath={item['content']!r}")
                 raw = client.generate_from_audio(item["content"], item["original_name"])
             else:
                 raw = client.generate_from_text(item["content"], item["original_name"])
 
-            print(f"[AI Rename] _apply_rename: raw suggestion={raw!r}")
+            print(f"[AI-Rename] _apply_rename: raw suggestion={raw!r}")
             if not raw:
-                print(f"[AI Rename] No suggestion returned for {item['original_name']!r}")
+                print(f"[AI-Rename] No suggestion returned for {item['original_name']!r}")
                 return 0, 1
 
             new_name = sanitize_filename(
@@ -1083,7 +1083,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
             GLib.idle_add(item["nfile"].invalidate_extension_info)
             return 1, 0
         except Exception as exc:
-            print(f"[AI Rename] Failed to rename {item['original_name']!r}: {exc}")
+            print(f"[AI-Rename] Failed to rename {item['original_name']!r}: {exc}")
             return 0, 1
 
     def _undo_worker(self) -> None:
@@ -1092,12 +1092,12 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         count = undo_mgr.undo_last_batch(1)
         if count:
             self._notify(
-                "AI Rename — undone",
+                "AI-Rename — undone",
                 f"Reversed {count} rename{'s' if count != 1 else ''}.",
             )
         else:
             self._notify(
-                "AI Rename — nothing to undo",
+                "AI-Rename — nothing to undo",
                 "No recent rename could be reversed.",
             )
 
@@ -1134,7 +1134,7 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
                 "max-filename-length": s.get_int("max-filename-length") or defaults["max-filename-length"],
             }
         except Exception as exc:
-            print(f"[AI Rename] Failed to load settings: {exc}")
+            print(f"[AI-Rename] Failed to load settings: {exc}")
             return defaults
 
     @staticmethod
@@ -1142,4 +1142,4 @@ class AIRenameExtension(GObject.GObject, Nautilus.MenuProvider):
         try:
             subprocess.Popen(["notify-send", title, body])
         except Exception as exc:
-            print(f"[AI Rename] notify-send failed: {exc}")
+            print(f"[AI-Rename] notify-send failed: {exc}")

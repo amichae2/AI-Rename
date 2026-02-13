@@ -13,7 +13,7 @@ SCHEMA_DEST="$SCHEMA_DIR/com.github.ai-rename.gschema.xml"
 
 CONFIG_DIR="$HOME/.config/nautilus-ai-rename"
 
-echo "Installing AI Rename Nautilus extension..."
+echo "Installing AI-Rename Nautilus extension..."
 
 # 1. Create required directories
 mkdir -p "$EXT_DIR"
@@ -42,4 +42,4 @@ echo "  Extension: $EXT_LINK"
 echo "  Schema:    $SCHEMA_DEST"
 echo "  Config:    $CONFIG_DIR"
 echo ""
-echo "Right-click any file in Nautilus and choose 'AI Rename...' to get started."
+echo "Right-click any file in Nautilus and choose 'AI-Rename...' to get started."

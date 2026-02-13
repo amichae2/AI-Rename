@@ -5,7 +5,7 @@ EXT_LINK="$HOME/.local/share/nautilus-python/extensions/ai_rename_extension.py"
 SCHEMA_DEST="$HOME/.local/share/glib-2.0/schemas/com.github.ai-rename.gschema.xml"
 SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas"
 
-echo "Uninstalling AI Rename Nautilus extension..."
+echo "Uninstalling AI-Rename Nautilus extension..."
 
 # 1. Remove the extension symlink
 if [ -L "$EXT_LINK" ]; then
