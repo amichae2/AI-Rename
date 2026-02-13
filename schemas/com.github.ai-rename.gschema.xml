@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+
+  <schema id="com.github.ai-rename" path="/com/github/ai-rename/">
+
+    <!-- Claude model identifier -->
+    <key name="model" type="s">
+      <default>'claude-haiku-4-5-20251001'</default>
+      <summary>Claude model identifier</summary>
+      <description>
+        Model name passed to the Anthropic API when generating filename suggestions
+        (e.g. "claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929"). The model
+        must be available under your API key.
+      </description>
+    </key>
+
+    <!-- API key (leave blank to use the ANTHROPIC_API_KEY environment variable) -->
+    <key name="api-key" type="s">
+      <default>''</default>
+      <summary>Anthropic API key</summary>
+      <description>
+        Your Anthropic API key. Leave blank to use the ANTHROPIC_API_KEY
+        environment variable instead (recommended for security).
+      </description>
+    </key>
+
+    <!-- Output constraints -->
+    <key name="max-filename-length" type="i">
+      <range min="10" max="200"/>
+      <default>60</default>
+      <summary>Maximum filename stem length</summary>
+      <description>
+        Maximum number of characters allowed in the generated filename stem
+        (the extension is appended separately and is not counted).
+      </description>
+    </key>
+
+  </schema>
+
+</schemalist>
